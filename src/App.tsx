@@ -92,8 +92,8 @@ function BtnPrimary({ href, children, full = false }: { href: string; children: 
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+      target={href.startsWith("https://") ? "_blank" : undefined}
+      rel={href.startsWith("https://") ? "noopener noreferrer" : undefined}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
@@ -122,8 +122,8 @@ function BtnGhost({ href, children, light = false }: { href: string; children: R
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+      target={href.startsWith("https://") ? "_blank" : undefined}
+      rel={href.startsWith("https://") ? "noopener noreferrer" : undefined}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
@@ -212,14 +212,14 @@ function Nav() {
           className="nav-mobile-btn"
           onClick={() => setOpen(!open)}
           style={{ background: "none", border: "none", cursor: "pointer", color: scrolled ? B.ink : "#fff", padding: "4px" }}
-          aria-label="Menu"
+          aria-label="Menu" aria-expanded={open} aria-controls="mobile-navigation"
         >
           {open ? <IconX /> : <IconMenu />}
         </button>
       </div>
 
       {open && (
-        <div style={{ background: "#fff", borderTop: `1px solid ${B.hairline}`, padding: "16px 24px 28px" }}>
+        <div id="mobile-navigation" style={{ background: "#fff", borderTop: `1px solid ${B.hairline}`, padding: "16px 24px 28px" }}>
           {NAV_LINKS.map((l) => (
             <a
               key={l.href}
@@ -382,7 +382,7 @@ function About() {
 
 /* ── Exams ── */
 const EXAM_GROUPS = [
-  { name: "Hematologia", desc: "Análise das células do sangue,hemácias, leucócitos e plaquetas, para avaliação do estado geral do paciente." },
+  { name: "Hematologia", desc: "Análise das células do sangue, hemácias, leucócitos e plaquetas, para avaliação do estado geral do paciente." },
   { name: "Coagulação", desc: "Avaliação do processo de coagulação sanguínea, identificando riscos de hemorragia ou trombose." },
   { name: "Perfis Facilitadores", desc: "Conjuntos de exames agrupados estrategicamente para facilitar diagnósticos específicos com um único pedido." },
   { name: "Bioquímica", desc: "Dosagem de enzimas, proteínas e metabólitos para avaliação da função hepática, renal, pancreática e outros órgãos." },
@@ -417,10 +417,18 @@ function Exams() {
                 style={{ position: "relative" }}
                 onMouseEnter={() => setActiveTooltip(i)}
                 onMouseLeave={() => setActiveTooltip(null)}
-                onClick={() => handleClick(i)}
               >
-                <div
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={isOpen ? `exam-description-${i}` : undefined}
+                  aria-describedby={isOpen ? `exam-description-${i}` : undefined}
+                  onClick={() => handleClick(i)}
+                  onKeyDown={(event) => { if (event.key === "Escape") setActiveTooltip(null); }}
+                  onBlur={() => setActiveTooltip(null)}
                   style={{
+                    width: "100%",
+                    textAlign: "left",
                     background: "#fff",
                     border: `1.5px solid ${isOpen ? B.blue : B.hairline}`,
                     borderRadius: "12px",
@@ -437,14 +445,14 @@ function Exams() {
                   <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: i % 2 === 0 ? B.blue : B.yellow, flexShrink: 0 }} />
                   <span style={{ ...font("0.95rem", 700, B.ink), lineHeight: 1.35, flex: 1 }}>{name}</span>
                   {/* Info hint */}
-                  <span style={{ flexShrink: 0, width: "18px", height: "18px", borderRadius: "50%", background: B.blueLight, display: "flex", alignItems: "center", justifyContent: "center", ...font("0.7rem", 800, B.blue) }}>
+                  <span aria-hidden="true" style={{ flexShrink: 0, width: "18px", height: "18px", borderRadius: "50%", background: B.blueLight, display: "flex", alignItems: "center", justifyContent: "center", ...font("0.7rem", 800, B.blue) }}>
                     i
                   </span>
-                </div>
+                </button>
 
                 {/* Tooltip */}
                 {isOpen && (
-                  <div style={{
+                  <div id={`exam-description-${i}`} style={{
                     position: "absolute",
                     bottom: "calc(100% + 8px)",
                     left: "0",
@@ -716,10 +724,7 @@ function Footer() {
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.7")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
               ><IconWhatsApp size={20} /></a>
-              <a href="#" style={{ color: "rgba(255,255,255,0.4)", transition: "color 0.15s" }} aria-label="Instagram"
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#fff")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)")}
-              ><IconInsta /></a>
+              <span style={{ color: "rgba(255,255,255,0.4)" }} role="img" aria-label="Instagram indisponível" title="Instagram indisponível"><IconInsta /></span>
             </div>
           </div>
 
@@ -734,7 +739,7 @@ function Footer() {
                 { label: "Como funciona", href: "#como-funciona" },
                 { label: "Contato", href: "#contato" },
               ].map((l) => (
-                <a key={l.label} href={l.href} style={{ ...font("0.875rem", 600, "rgba(255,255,255,0.88)"), textDecoration: "none", transition: "color 0.15s" }}
+                <a key={l.label} href={l.href} target={l.href.startsWith("https://") ? "_blank" : undefined} rel={l.href.startsWith("https://") ? "noopener noreferrer" : undefined} style={{ ...font("0.875rem", 600, "rgba(255,255,255,0.88)"), textDecoration: "none", transition: "color 0.15s" }}
                   onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = B.yellow)}
                   onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.88)")}
                 >{l.label}</a>
@@ -879,7 +884,11 @@ function Registration() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      document.getElementById(`cadastro-${Object.keys(errs)[0]}`)?.focus();
+      return;
+    }
     // TODO: integrar com backend/API para envio dos dados ao LabMil
     setSubmitted(true);
   }
@@ -904,7 +913,7 @@ function Registration() {
         </p>
 
         {submitted ? (
-          <div style={{
+          <div role="status" aria-live="polite" style={{
             background: "#fff",
             border: `1.5px solid #38A169`,
             borderRadius: "16px",
@@ -931,8 +940,13 @@ function Registration() {
 
             {/* Nome */}
             <div>
-              <label style={LABEL_STYLE}>Nome completo <span style={{ color: "#E53E3E" }}>*</span></label>
+              <label htmlFor="cadastro-nome" style={LABEL_STYLE}>Nome completo <span style={{ color: "#E53E3E" }}>*</span></label>
               <input
+                id="cadastro-nome"
+                name="nome"
+                required
+                aria-invalid={!!errors.nome}
+                aria-describedby={errors.nome ? "cadastro-nome-error" : undefined}
                 type="text"
                 value={form.nome}
                 onChange={(e) => set("nome", e.target.value)}
@@ -941,13 +955,15 @@ function Registration() {
                 placeholder="Seu nome completo"
                 style={FIELD_STYLE(!!errors.nome)}
               />
-              {errors.nome && <div style={ERROR_STYLE}>{errors.nome}</div>}
+              {errors.nome && <div id="cadastro-nome-error" role="alert" style={ERROR_STYLE}>{errors.nome}</div>}
             </div>
 
             {/* Clínica */}
             <div>
-              <label style={LABEL_STYLE}>Nome da clínica ou hospital <span style={{ ...font("0.75rem", 400, B.muted) }}>(opcional)</span></label>
+              <label htmlFor="cadastro-clinica" style={LABEL_STYLE}>Nome da clínica ou hospital <span style={{ ...font("0.75rem", 400, B.muted) }}>(opcional)</span></label>
               <input
+                id="cadastro-clinica"
+                name="clinica"
                 type="text"
                 value={form.clinica}
                 onChange={(e) => set("clinica", e.target.value)}
@@ -961,8 +977,13 @@ function Registration() {
             {/* Email + WhatsApp */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
               <div>
-                <label style={LABEL_STYLE}>E-mail <span style={{ color: "#E53E3E" }}>*</span></label>
+                <label htmlFor="cadastro-email" style={LABEL_STYLE}>E-mail <span style={{ color: "#E53E3E" }}>*</span></label>
                 <input
+                  id="cadastro-email"
+                  name="email"
+                  required
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "cadastro-email-error" : undefined}
                   type="email"
                   value={form.email}
                   onChange={(e) => set("email", e.target.value)}
@@ -971,11 +992,16 @@ function Registration() {
                   placeholder="seu@email.com"
                   style={FIELD_STYLE(!!errors.email)}
                 />
-                {errors.email && <div style={ERROR_STYLE}>{errors.email}</div>}
+                {errors.email && <div id="cadastro-email-error" role="alert" style={ERROR_STYLE}>{errors.email}</div>}
               </div>
               <div>
-                <label style={LABEL_STYLE}>WhatsApp <span style={{ color: "#E53E3E" }}>*</span></label>
+                <label htmlFor="cadastro-whatsapp" style={LABEL_STYLE}>WhatsApp <span style={{ color: "#E53E3E" }}>*</span></label>
                 <input
+                  id="cadastro-whatsapp"
+                  name="whatsapp"
+                  required
+                  aria-invalid={!!errors.whatsapp}
+                  aria-describedby={errors.whatsapp ? "cadastro-whatsapp-error" : undefined}
                   type="tel"
                   value={form.whatsapp}
                   onChange={(e) => set("whatsapp", e.target.value)}
@@ -984,15 +1010,20 @@ function Registration() {
                   placeholder="(00) 00000-0000"
                   style={FIELD_STYLE(!!errors.whatsapp)}
                 />
-                {errors.whatsapp && <div style={ERROR_STYLE}>{errors.whatsapp}</div>}
+                {errors.whatsapp && <div id="cadastro-whatsapp-error" role="alert" style={ERROR_STYLE}>{errors.whatsapp}</div>}
               </div>
             </div>
 
             {/* Tipo + Documento */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
               <div>
-                <label style={LABEL_STYLE}>Tipo de cadastro <span style={{ color: "#E53E3E" }}>*</span></label>
+                <label htmlFor="cadastro-tipo" style={LABEL_STYLE}>Tipo de cadastro <span style={{ color: "#E53E3E" }}>*</span></label>
                 <select
+                  id="cadastro-tipo"
+                  name="tipo"
+                  required
+                  aria-invalid={!!errors.tipo}
+                  aria-describedby={errors.tipo ? "cadastro-tipo-error" : undefined}
                   value={form.tipo}
                   onChange={(e) => set("tipo", e.target.value)}
                   onFocus={inputFocus}
@@ -1003,11 +1034,16 @@ function Registration() {
                   <option value="clinica">Clínica / Hospital veterinário</option>
                   <option value="autonomo">Médico-veterinário autônomo</option>
                 </select>
-                {errors.tipo && <div style={ERROR_STYLE}>{errors.tipo}</div>}
+                {errors.tipo && <div id="cadastro-tipo-error" role="alert" style={ERROR_STYLE}>{errors.tipo}</div>}
               </div>
               <div>
-                <label style={LABEL_STYLE}>CPF ou CNPJ <span style={{ color: "#E53E3E" }}>*</span></label>
+                <label htmlFor="cadastro-documento" style={LABEL_STYLE}>CPF ou CNPJ <span style={{ color: "#E53E3E" }}>*</span></label>
                 <input
+                  id="cadastro-documento"
+                  name="documento"
+                  required
+                  aria-invalid={!!errors.documento}
+                  aria-describedby={errors.documento ? "cadastro-documento-error" : undefined}
                   type="text"
                   value={form.documento}
                   onChange={(e) => set("documento", e.target.value)}
@@ -1016,14 +1052,19 @@ function Registration() {
                   placeholder="CPF ou CNPJ"
                   style={FIELD_STYLE(!!errors.documento)}
                 />
-                {errors.documento && <div style={ERROR_STYLE}>{errors.documento}</div>}
+                {errors.documento && <div id="cadastro-documento-error" role="alert" style={ERROR_STYLE}>{errors.documento}</div>}
               </div>
             </div>
 
             {/* Receber laudos */}
             <div>
-              <label style={LABEL_STYLE}>Onde deseja receber os laudos? <span style={{ color: "#E53E3E" }}>*</span></label>
+              <label htmlFor="cadastro-receber" style={LABEL_STYLE}>Onde deseja receber os laudos? <span style={{ color: "#E53E3E" }}>*</span></label>
               <select
+                id="cadastro-receber"
+                name="receber"
+                required
+                aria-invalid={!!errors.receber}
+                aria-describedby={errors.receber ? "cadastro-receber-error" : undefined}
                 value={form.receber}
                 onChange={(e) => set("receber", e.target.value)}
                 onFocus={inputFocus}
@@ -1035,14 +1076,18 @@ function Registration() {
                 <option value="whatsapp">WhatsApp</option>
                 <option value="ambos">Ambos</option>
               </select>
-              {errors.receber && <div style={ERROR_STYLE}>{errors.receber}</div>}
+              {errors.receber && <div id="cadastro-receber-error" role="alert" style={ERROR_STYLE}>{errors.receber}</div>}
             </div>
 
             {/* Consentimento */}
             <div>
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
+              <label htmlFor="cadastro-consentimento" style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
                 <input
                   type="checkbox"
+                  id="cadastro-consentimento"
+                  required
+                  aria-invalid={!!errors.consentimento}
+                  aria-describedby={errors.consentimento ? "cadastro-consentimento-error" : undefined}
                   checked={form.consentimento}
                   onChange={(e) => set("consentimento", e.target.checked)}
                   style={{ marginTop: "3px", flexShrink: 0, accentColor: B.blue, width: "16px", height: "16px", cursor: "pointer" }}
@@ -1054,7 +1099,7 @@ function Registration() {
                   </a>
                 </span>
               </label>
-              {errors.consentimento && <div style={{ ...ERROR_STYLE, marginTop: "6px" }}>{errors.consentimento}</div>}
+              {errors.consentimento && <div id="cadastro-consentimento-error" role="alert" style={{ ...ERROR_STYLE, marginTop: "6px" }}>{errors.consentimento}</div>}
             </div>
 
             {/* Submit */}
