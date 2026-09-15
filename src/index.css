@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: "Nunito", system-ui, sans-serif;
+
+  --color-brand-blue: #0750FC;
+  --color-brand-blue-dark: #0440D4;
+  --color-brand-blue-light: #EEF2FF;
+  --color-brand-yellow: #FFCA64;
+  --color-brand-yellow-dark: #F5B830;
+  --color-brand-purple: #893FFF;
+  --color-bg: #FFFFFF;
+  --color-surface: #F9F9F9;
+  --color-ink: #0A0A14;
+  --color-muted: #5B6B8A;
+  --color-hairline: #E4E9F5;
+  --color-whatsapp: #25D366;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (max-width: 1023px) {
+  .nav-desktop { display: none !important; }
+}
+@media (min-width: 1024px) {
+  .nav-mobile-btn { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  .exam-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 380px) {
+  .exam-grid { grid-template-columns: 1fr !important; }
+}
+
+body::-webkit-scrollbar { width: 5px; }
+body::-webkit-scrollbar-track { background: transparent; }
+body::-webkit-scrollbar-thumb { background: #E4E9F5; border-radius: 3px; }
