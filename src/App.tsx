@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDocument, validDocument, formatWhatsApp, validWhatsApp, formatCRMV, validCRMV } from "./registrationValidation";
 import logoBlack from "@/imports/MARCA_LABMIL_VERSAO01-HORIZONTAL.6.png";
 import logoWhite from "@/imports/MARCA_LABMIL_VERSAO01-HORIZONTAL.5-1.png";
 import camilaPhoto from "@/imports/IMG_0146__1_.jpg.jpeg";
@@ -876,8 +877,8 @@ function Registration() {
   }
 
   const isInstitution = form.tipo === "clinica";
-  const canSubmit = !!form.tipo && !!form.nome.trim() && !!form.crmv.trim()
-    && !!form.email.trim() && !!form.whatsapp.trim() && !!form.documento.trim()
+  const canSubmit = !!form.tipo && !!form.nome.trim() && validCRMV(form.crmv)
+    && validateEmail(form.email) && validWhatsApp(form.whatsapp) && validDocument(form.documento)
     && !!form.receber && form.consentimento
     && (!isInstitution || (!!form.clinica.trim() && !!form.veterinario.trim()));
 
@@ -888,10 +889,13 @@ function Registration() {
     if (isInstitution && !form.clinica.trim()) e.clinica = "Nome da clínica ou hospital obrigatório.";
     if (isInstitution && !form.veterinario.trim()) e.veterinario = "Nome do veterinário responsável obrigatório.";
     if (!form.crmv.trim()) e.crmv = "Informe o CRMV do veterinário.";
+    else if (!validCRMV(form.crmv)) e.crmv = "Informe número e UF válidos, como 12345-CE.";
     if (!form.email.trim()) e.email = "E-mail obrigatório.";
     else if (!validateEmail(form.email)) e.email = "Informe um e-mail válido.";
     if (!form.whatsapp.trim()) e.whatsapp = "WhatsApp obrigatório.";
+    else if (!validWhatsApp(form.whatsapp)) e.whatsapp = "Informe um celular com DDD e 9 dígitos.";
     if (!form.documento.trim()) e.documento = "CPF ou CNPJ obrigatório.";
+    else if (!validDocument(form.documento)) e.documento = "Informe um CPF ou CNPJ válido.";
     if (!form.receber) e.receber = "Selecione onde deseja receber os laudos.";
     if (!form.consentimento) e.consentimento = "É necessário concordar para prosseguir.";
     return e;
@@ -914,6 +918,16 @@ function Registration() {
   };
   const inputBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
     e.currentTarget.style.borderColor = B.hairline;
+    const field = e.currentTarget.name as keyof FormFields;
+    const message = field === "documento" && form.documento && !validDocument(form.documento)
+      ? "Informe um CPF ou CNPJ válido."
+      : field === "whatsapp" && form.whatsapp && !validWhatsApp(form.whatsapp)
+      ? "Informe um celular com DDD e 9 dígitos."
+      : field === "crmv" && form.crmv && !validCRMV(form.crmv)
+      ? "Informe número e UF válidos, como 12345-CE."
+      : field === "email" && form.email && !validateEmail(form.email)
+      ? "Informe um e-mail válido." : undefined;
+    if (message) setErrors((current) => ({ ...current, [field]: message }));
   };
 
   return (
@@ -1053,7 +1067,8 @@ function Registration() {
                   aria-invalid={!!errors.crmv}
                   aria-describedby={errors.crmv ? "cadastro-crmv-error" : undefined}
                   value={form.crmv}
-                  onChange={(e) => set("crmv", e.target.value)}
+                  onChange={(e) => set("crmv", formatCRMV(e.target.value))}
+                  maxLength={11}
                   onFocus={inputFocus}
                   onBlur={inputBlur}
                   placeholder="Ex.: 12345-CE"
@@ -1093,7 +1108,9 @@ function Registration() {
                   aria-describedby={errors.whatsapp ? "cadastro-whatsapp-error" : undefined}
                   type="tel"
                   value={form.whatsapp}
-                  onChange={(e) => set("whatsapp", e.target.value)}
+                  onChange={(e) => set("whatsapp", formatWhatsApp(e.target.value))}
+                  maxLength={15}
+                  autoComplete="tel"
                   onFocus={inputFocus}
                   onBlur={inputBlur}
                   placeholder="(00) 00000-0000"
@@ -1114,7 +1131,8 @@ function Registration() {
                   aria-describedby={errors.documento ? "cadastro-documento-error" : undefined}
                   type="text"
                   value={form.documento}
-                  onChange={(e) => set("documento", e.target.value)}
+                  onChange={(e) => set("documento", formatDocument(e.target.value))}
+                  maxLength={18}
                   onFocus={inputFocus}
                   onBlur={inputBlur}
                   placeholder="CPF ou CNPJ"
