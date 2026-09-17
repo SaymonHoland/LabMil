@@ -1143,8 +1143,8 @@ export default function App() {
       <About />
       <Exams />
       <HowItWorks />
-      <Registration />
       <Team />
+      <Registration />
       <Contact />
       <Footer />
       <FloatWA />
