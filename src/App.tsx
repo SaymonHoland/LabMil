@@ -909,7 +909,7 @@ function Registration() {
       document.getElementById(`cadastro-${Object.keys(errs)[0]}`)?.focus();
       return;
     }
-    // TODO: integrar com backend/API para envio dos dados ao LabMil
+    // Prévia: o formulário não transmite dados. Integrar com o serviço de envio antes de ativar cadastros.
     setSubmitted(true);
   }
 
@@ -944,6 +944,9 @@ function Registration() {
         <p role="note" style={{ ...font("0.875rem", 600, B.muted), lineHeight: 1.6, margin: "0 0 24px" }}>
           Cadastro para veterinários, clínicas e hospitais veterinários.
         </p>
+        <p role="note" style={{ ...font("0.875rem", 600, B.muted), lineHeight: 1.6, margin: "0 0 24px" }}>
+          Prévia do site: este formulário ainda não envia cadastros. Para solicitar seu cadastro, fale conosco pelo WhatsApp.
+        </p>
 
         {submitted ? (
           <div role="status" aria-live="polite" style={{
@@ -962,10 +965,9 @@ function Registration() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <div style={{ ...font("1.2rem", 800, B.ink) }}>Solicitação enviada</div>
+            <div style={{ ...font("1.2rem", 800, B.ink) }}>Prévia concluída</div>
             <p style={{ ...font("0.95rem", 400, B.muted), lineHeight: 1.7, maxWidth: "440px" }}>
-              Recebemos seus dados. A equipe do LabMil entrará em contato para confirmar
-              as informações e dar continuidade ao cadastro.
+              Nenhum dado foi enviado. O cadastro estará disponível quando o envio for ativado.
             </p>
           </div>
         ) : (
@@ -1211,7 +1213,7 @@ function Registration() {
                 onMouseEnter={(e) => { if (canSubmit) e.currentTarget.style.background = B.blueDark; }}
                 onMouseLeave={(e) => { if (canSubmit) e.currentTarget.style.background = B.blue; }}
               >
-                <IconArrow /> Solicitar cadastro
+                <IconArrow /> Testar cadastro
               </button>
             </div>
           </form>
