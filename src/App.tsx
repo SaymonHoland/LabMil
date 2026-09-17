@@ -814,6 +814,8 @@ function FloatWA() {
 type FormFields = {
   nome: string;
   clinica: string;
+  veterinario: string;
+  crmv: string;
   email: string;
   whatsapp: string;
   tipo: string;
@@ -857,7 +859,7 @@ function validateEmail(v: string) {
 
 function Registration() {
   const [form, setForm] = useState<FormFields>({
-    nome: "", clinica: "", email: "", whatsapp: "",
+    nome: "", clinica: "", veterinario: "", crmv: "", email: "", whatsapp: "",
     tipo: "", documento: "", receber: "", consentimento: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -871,6 +873,8 @@ function Registration() {
   function validate(): FormErrors {
     const e: FormErrors = {};
     if (!form.nome.trim()) e.nome = "Nome obrigatório.";
+    if (!form.veterinario.trim()) e.veterinario = "Nome do médico-veterinário obrigatório.";
+    if (!form.crmv.trim()) e.crmv = "Informe o CRMV do médico-veterinário.";
     if (!form.email.trim()) e.email = "E-mail obrigatório.";
     else if (!validateEmail(form.email)) e.email = "Informe um e-mail válido.";
     if (!form.whatsapp.trim()) e.whatsapp = "WhatsApp obrigatório.";
@@ -911,6 +915,12 @@ function Registration() {
           Preencha seus dados para iniciar seu cadastro. Nossa equipe entrará em contato
           para confirmar as informações e concluir o processo.
         </p>
+        <div role="note" style={{ background: B.blueLight, borderLeft: `4px solid ${B.blue}`, borderRadius: "10px", padding: "16px 20px", marginBottom: "20px" }}>
+          <strong style={{ ...font("0.95rem", 800, B.blue) }}>Cadastro exclusivo para profissionais veterinários</strong>
+          <p style={{ ...font("0.875rem", 500, B.ink), lineHeight: 1.6, margin: "4px 0 0" }}>
+            Para médicos-veterinários, clínicas e hospitais veterinários. Tutores de animais não podem se cadastrar por este formulário.
+          </p>
+        </div>
 
         {submitted ? (
           <div role="status" aria-live="polite" style={{
@@ -972,6 +982,46 @@ function Registration() {
                 placeholder="Nome da instituição, se houver"
                 style={FIELD_STYLE(false)}
               />
+            </div>
+
+            {/* Profissional responsável */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+              <div>
+                <label htmlFor="cadastro-veterinario" style={LABEL_STYLE}>Nome do médico-veterinário responsável <span style={{ color: "#E53E3E" }}>*</span></label>
+                <input
+                  id="cadastro-veterinario"
+                  name="veterinario"
+                  type="text"
+                  required
+                  aria-invalid={!!errors.veterinario}
+                  aria-describedby={errors.veterinario ? "cadastro-veterinario-error" : undefined}
+                  value={form.veterinario}
+                  onChange={(e) => set("veterinario", e.target.value)}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
+                  placeholder="Nome completo do profissional"
+                  style={FIELD_STYLE(!!errors.veterinario)}
+                />
+                {errors.veterinario && <div id="cadastro-veterinario-error" role="alert" style={ERROR_STYLE}>{errors.veterinario}</div>}
+              </div>
+              <div>
+                <label htmlFor="cadastro-crmv" style={LABEL_STYLE}>CRMV do responsável (número/UF) <span style={{ color: "#E53E3E" }}>*</span></label>
+                <input
+                  id="cadastro-crmv"
+                  name="crmv"
+                  type="text"
+                  required
+                  aria-invalid={!!errors.crmv}
+                  aria-describedby={errors.crmv ? "cadastro-crmv-error" : undefined}
+                  value={form.crmv}
+                  onChange={(e) => set("crmv", e.target.value)}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
+                  placeholder="Ex.: 12345-CE"
+                  style={FIELD_STYLE(!!errors.crmv)}
+                />
+                {errors.crmv && <div id="cadastro-crmv-error" role="alert" style={ERROR_STYLE}>{errors.crmv}</div>}
+              </div>
             </div>
 
             {/* Email + WhatsApp */}
