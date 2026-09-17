@@ -875,13 +875,17 @@ function Registration() {
     setErrors({});
   }
 
-  const isInstitution = form.tipo === "clinica" || form.tipo === "hospital";
+  const isInstitution = form.tipo === "clinica";
+  const canSubmit = !!form.tipo && !!form.nome.trim() && !!form.crmv.trim()
+    && !!form.email.trim() && !!form.whatsapp.trim() && !!form.documento.trim()
+    && !!form.receber && form.consentimento
+    && (!isInstitution || (!!form.clinica.trim() && !!form.veterinario.trim()));
 
   function validate(): FormErrors {
     const e: FormErrors = {};
     if (!form.tipo) e.tipo = "Selecione como você vai se cadastrar.";
     if (!form.nome.trim()) e.nome = isInstitution ? "Informe o nome de quem faz o cadastro." : "Nome do veterinário obrigatório.";
-    if (isInstitution && !form.clinica.trim()) e.clinica = `Nome ${form.tipo === "hospital" ? "do hospital" : "da clínica"} obrigatório.`;
+    if (isInstitution && !form.clinica.trim()) e.clinica = "Nome da clínica ou hospital obrigatório.";
     if (isInstitution && !form.veterinario.trim()) e.veterinario = "Nome do veterinário responsável obrigatório.";
     if (!form.crmv.trim()) e.crmv = "Informe o CRMV do veterinário.";
     if (!form.email.trim()) e.email = "E-mail obrigatório.";
@@ -958,8 +962,7 @@ function Registration() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
                 {[
                   { value: "autonomo", label: "Veterinário autônomo" },
-                  { value: "clinica", label: "Clínica veterinária" },
-                  { value: "hospital", label: "Hospital veterinário" },
+                  { value: "clinica", label: "Clínica / hospital veterinário" },
                 ].map((option, index) => (
                   <label key={option.value} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px", border: `1.5px solid ${form.tipo === option.value ? B.blue : B.hairline}`, borderRadius: "10px", background: form.tipo === option.value ? B.blueLight : "#fff", cursor: "pointer", ...font("0.875rem", 700, B.ink) }}>
                     <input
@@ -1002,7 +1005,7 @@ function Registration() {
 
             {/* Instituição */}
             {isInstitution && <div>
-              <label htmlFor="cadastro-clinica" style={LABEL_STYLE}>Nome {form.tipo === "hospital" ? "do hospital" : "da clínica"} <span style={{ color: "#E53E3E" }}>*</span></label>
+              <label htmlFor="cadastro-clinica" style={LABEL_STYLE}>Nome da clínica ou hospital <span style={{ color: "#E53E3E" }}>*</span></label>
               <input
                 id="cadastro-clinica"
                 name="clinica"
@@ -1014,7 +1017,7 @@ function Registration() {
                 onChange={(e) => set("clinica", e.target.value)}
                 onFocus={inputFocus}
                 onBlur={inputBlur}
-                placeholder={form.tipo === "hospital" ? "Nome do hospital" : "Nome da clínica"}
+                placeholder="Nome da clínica ou hospital"
                 style={FIELD_STYLE(!!errors.clinica)}
               />
               {errors.clinica && <div id="cadastro-clinica-error" role="alert" style={ERROR_STYLE}>{errors.clinica}</div>}
@@ -1171,23 +1174,24 @@ function Registration() {
             <div style={{ paddingTop: "4px" }}>
               <button
                 type="submit"
+                disabled={!canSubmit}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "8px",
-                  background: B.blue,
+                  background: canSubmit ? B.blue : "#AAB6CA",
                   color: "#fff",
                   padding: "13px 28px",
                   borderRadius: "12px",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: canSubmit ? "pointer" : "not-allowed",
                   fontFamily: '"Nunito", system-ui, sans-serif',
                   fontSize: "0.95rem",
                   fontWeight: 700,
                   transition: "background 0.18s",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = B.blueDark)}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = B.blue)}
+                onMouseEnter={(e) => { if (canSubmit) e.currentTarget.style.background = B.blueDark; }}
+                onMouseLeave={(e) => { if (canSubmit) e.currentTarget.style.background = B.blue; }}
               >
                 <IconArrow /> Solicitar cadastro
               </button>
