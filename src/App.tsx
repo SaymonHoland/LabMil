@@ -870,15 +870,23 @@ function Registration() {
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
   }
 
+  function setProfile(tipo: string) {
+    setForm((f) => ({ ...f, tipo, clinica: "", veterinario: "" }));
+    setErrors({});
+  }
+
+  const isInstitution = form.tipo === "clinica" || form.tipo === "hospital";
+
   function validate(): FormErrors {
     const e: FormErrors = {};
-    if (!form.nome.trim()) e.nome = "Nome obrigatório.";
-    if (!form.veterinario.trim()) e.veterinario = "Nome do veterinário obrigatório.";
+    if (!form.tipo) e.tipo = "Selecione como você vai se cadastrar.";
+    if (!form.nome.trim()) e.nome = isInstitution ? "Informe o nome de quem faz o cadastro." : "Nome do veterinário obrigatório.";
+    if (isInstitution && !form.clinica.trim()) e.clinica = `Nome ${form.tipo === "hospital" ? "do hospital" : "da clínica"} obrigatório.`;
+    if (isInstitution && !form.veterinario.trim()) e.veterinario = "Nome do veterinário responsável obrigatório.";
     if (!form.crmv.trim()) e.crmv = "Informe o CRMV do veterinário.";
     if (!form.email.trim()) e.email = "E-mail obrigatório.";
     else if (!validateEmail(form.email)) e.email = "Informe um e-mail válido.";
     if (!form.whatsapp.trim()) e.whatsapp = "WhatsApp obrigatório.";
-    if (!form.tipo) e.tipo = "Selecione o tipo de cadastro.";
     if (!form.documento.trim()) e.documento = "CPF ou CNPJ obrigatório.";
     if (!form.receber) e.receber = "Selecione onde deseja receber os laudos.";
     if (!form.consentimento) e.consentimento = "É necessário concordar para prosseguir.";
@@ -945,9 +953,36 @@ function Registration() {
         ) : (
           <form onSubmit={handleSubmit} noValidate style={{ background: "#fff", border: `1px solid ${B.hairline}`, borderRadius: "16px", padding: "36px 32px", display: "flex", flexDirection: "column", gap: "20px" }}>
 
+            <fieldset aria-describedby={errors.tipo ? "cadastro-tipo-error" : undefined} style={{ border: "none", padding: 0, margin: 0 }}>
+              <legend style={{ ...LABEL_STYLE, marginBottom: "10px" }}>Você vai se cadastrar como? <span style={{ color: "#E53E3E" }}>*</span></legend>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
+                {[
+                  { value: "autonomo", label: "Veterinário autônomo" },
+                  { value: "clinica", label: "Clínica veterinária" },
+                  { value: "hospital", label: "Hospital veterinário" },
+                ].map((option, index) => (
+                  <label key={option.value} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px", border: `1.5px solid ${form.tipo === option.value ? B.blue : B.hairline}`, borderRadius: "10px", background: form.tipo === option.value ? B.blueLight : "#fff", cursor: "pointer", ...font("0.875rem", 700, B.ink) }}>
+                    <input
+                      id={index === 0 ? "cadastro-tipo" : undefined}
+                      type="radio"
+                      name="tipo"
+                      value={option.value}
+                      checked={form.tipo === option.value}
+                      onChange={() => setProfile(option.value)}
+                      style={{ accentColor: B.blue, flexShrink: 0 }}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+              {errors.tipo && <div id="cadastro-tipo-error" role="alert" style={ERROR_STYLE}>{errors.tipo}</div>}
+            </fieldset>
+
+            {form.tipo && (<>
+
             {/* Nome */}
             <div>
-              <label htmlFor="cadastro-nome" style={LABEL_STYLE}>Nome completo <span style={{ color: "#E53E3E" }}>*</span></label>
+              <label htmlFor="cadastro-nome" style={LABEL_STYLE}>{isInstitution ? "Nome de quem está fazendo o cadastro" : "Nome do veterinário"} <span style={{ color: "#E53E3E" }}>*</span></label>
               <input
                 id="cadastro-nome"
                 name="nome"
@@ -959,31 +994,35 @@ function Registration() {
                 onChange={(e) => set("nome", e.target.value)}
                 onFocus={inputFocus}
                 onBlur={inputBlur}
-                placeholder="Seu nome completo"
+                placeholder="Nome completo"
                 style={FIELD_STYLE(!!errors.nome)}
               />
               {errors.nome && <div id="cadastro-nome-error" role="alert" style={ERROR_STYLE}>{errors.nome}</div>}
             </div>
 
-            {/* Clínica */}
-            <div>
-              <label htmlFor="cadastro-clinica" style={LABEL_STYLE}>Nome da clínica ou hospital <span style={{ ...font("0.75rem", 400, B.muted) }}>(opcional)</span></label>
+            {/* Instituição */}
+            {isInstitution && <div>
+              <label htmlFor="cadastro-clinica" style={LABEL_STYLE}>Nome {form.tipo === "hospital" ? "do hospital" : "da clínica"} <span style={{ color: "#E53E3E" }}>*</span></label>
               <input
                 id="cadastro-clinica"
                 name="clinica"
                 type="text"
+                required
+                aria-invalid={!!errors.clinica}
+                aria-describedby={errors.clinica ? "cadastro-clinica-error" : undefined}
                 value={form.clinica}
                 onChange={(e) => set("clinica", e.target.value)}
                 onFocus={inputFocus}
                 onBlur={inputBlur}
-                placeholder="Nome da instituição, se houver"
-                style={FIELD_STYLE(false)}
+                placeholder={form.tipo === "hospital" ? "Nome do hospital" : "Nome da clínica"}
+                style={FIELD_STYLE(!!errors.clinica)}
               />
-            </div>
+              {errors.clinica && <div id="cadastro-clinica-error" role="alert" style={ERROR_STYLE}>{errors.clinica}</div>}
+            </div>}
 
             {/* Profissional responsável */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-              <div>
+              {isInstitution && <div>
                 <label htmlFor="cadastro-veterinario" style={LABEL_STYLE}>Nome do veterinário responsável <span style={{ color: "#E53E3E" }}>*</span></label>
                 <input
                   id="cadastro-veterinario"
@@ -1000,7 +1039,7 @@ function Registration() {
                   style={FIELD_STYLE(!!errors.veterinario)}
                 />
                 {errors.veterinario && <div id="cadastro-veterinario-error" role="alert" style={ERROR_STYLE}>{errors.veterinario}</div>}
-              </div>
+              </div>}
               <div>
                 <label htmlFor="cadastro-crmv" style={LABEL_STYLE}>CRMV do responsável (número/UF) <span style={{ color: "#E53E3E" }}>*</span></label>
                 <input
@@ -1061,29 +1100,8 @@ function Registration() {
               </div>
             </div>
 
-            {/* Tipo + Documento */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-              <div>
-                <label htmlFor="cadastro-tipo" style={LABEL_STYLE}>Tipo de cadastro <span style={{ color: "#E53E3E" }}>*</span></label>
-                <select
-                  id="cadastro-tipo"
-                  name="tipo"
-                  required
-                  aria-invalid={!!errors.tipo}
-                  aria-describedby={errors.tipo ? "cadastro-tipo-error" : undefined}
-                  value={form.tipo}
-                  onChange={(e) => set("tipo", e.target.value)}
-                  onFocus={inputFocus}
-                  onBlur={inputBlur}
-                  style={{ ...FIELD_STYLE(!!errors.tipo), appearance: "auto" as const, color: form.tipo ? B.ink : B.muted }}
-                >
-                  <option value="" disabled>Selecione</option>
-                  <option value="clinica">Clínica / Hospital veterinário</option>
-                  <option value="autonomo">Veterinário autônomo</option>
-                </select>
-                {errors.tipo && <div id="cadastro-tipo-error" role="alert" style={ERROR_STYLE}>{errors.tipo}</div>}
-              </div>
-              <div>
+            {/* Documento */}
+            <div>
                 <label htmlFor="cadastro-documento" style={LABEL_STYLE}>CPF ou CNPJ <span style={{ color: "#E53E3E" }}>*</span></label>
                 <input
                   id="cadastro-documento"
@@ -1100,7 +1118,6 @@ function Registration() {
                   style={FIELD_STYLE(!!errors.documento)}
                 />
                 {errors.documento && <div id="cadastro-documento-error" role="alert" style={ERROR_STYLE}>{errors.documento}</div>}
-              </div>
             </div>
 
             {/* Receber laudos */}
@@ -1150,6 +1167,7 @@ function Registration() {
             </div>
 
             {/* Submit */}
+            </>)}
             <div style={{ paddingTop: "4px" }}>
               <button
                 type="submit"
