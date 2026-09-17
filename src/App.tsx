@@ -873,8 +873,8 @@ function Registration() {
   function validate(): FormErrors {
     const e: FormErrors = {};
     if (!form.nome.trim()) e.nome = "Nome obrigatório.";
-    if (!form.veterinario.trim()) e.veterinario = "Nome do médico-veterinário obrigatório.";
-    if (!form.crmv.trim()) e.crmv = "Informe o CRMV do médico-veterinário.";
+    if (!form.veterinario.trim()) e.veterinario = "Nome do veterinário obrigatório.";
+    if (!form.crmv.trim()) e.crmv = "Informe o CRMV do veterinário.";
     if (!form.email.trim()) e.email = "E-mail obrigatório.";
     else if (!validateEmail(form.email)) e.email = "Informe um e-mail válido.";
     if (!form.whatsapp.trim()) e.whatsapp = "WhatsApp obrigatório.";
@@ -911,16 +911,13 @@ function Registration() {
         <h2 style={{ ...font("clamp(1.8rem, 4vw, 2.8rem)", 800, B.ink), lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "12px" }}>
           Quer se tornar cliente do LabMil?
         </h2>
-        <p style={{ ...font("1rem", 400, B.muted), lineHeight: 1.7, marginBottom: "40px", maxWidth: "560px" }}>
+        <p style={{ ...font("1rem", 400, B.muted), lineHeight: 1.7, marginBottom: "12px", maxWidth: "560px" }}>
           Preencha seus dados para iniciar seu cadastro. Nossa equipe entrará em contato
           para confirmar as informações e concluir o processo.
         </p>
-        <div role="note" style={{ background: B.blueLight, borderLeft: `4px solid ${B.blue}`, borderRadius: "10px", padding: "16px 20px", marginBottom: "20px" }}>
-          <strong style={{ ...font("0.95rem", 800, B.blue) }}>Cadastro exclusivo para profissionais veterinários</strong>
-          <p style={{ ...font("0.875rem", 500, B.ink), lineHeight: 1.6, margin: "4px 0 0" }}>
-            Para médicos-veterinários, clínicas e hospitais veterinários. Tutores de animais não podem se cadastrar por este formulário.
-          </p>
-        </div>
+        <p role="note" style={{ ...font("0.875rem", 600, B.muted), lineHeight: 1.6, margin: "0 0 24px" }}>
+          Cadastro para veterinários, clínicas e hospitais veterinários.
+        </p>
 
         {submitted ? (
           <div role="status" aria-live="polite" style={{
@@ -987,7 +984,7 @@ function Registration() {
             {/* Profissional responsável */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
               <div>
-                <label htmlFor="cadastro-veterinario" style={LABEL_STYLE}>Nome do médico-veterinário responsável <span style={{ color: "#E53E3E" }}>*</span></label>
+                <label htmlFor="cadastro-veterinario" style={LABEL_STYLE}>Nome do veterinário responsável <span style={{ color: "#E53E3E" }}>*</span></label>
                 <input
                   id="cadastro-veterinario"
                   name="veterinario"
@@ -1082,7 +1079,7 @@ function Registration() {
                 >
                   <option value="" disabled>Selecione</option>
                   <option value="clinica">Clínica / Hospital veterinário</option>
-                  <option value="autonomo">Médico-veterinário autônomo</option>
+                  <option value="autonomo">Veterinário autônomo</option>
                 </select>
                 {errors.tipo && <div id="cadastro-tipo-error" role="alert" style={ERROR_STYLE}>{errors.tipo}</div>}
               </div>
