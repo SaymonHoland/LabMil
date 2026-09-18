@@ -821,6 +821,11 @@ type FormFields = {
   whatsapp: string;
   tipo: string;
   documento: string;
+  cep: string;
+  cidade: string;
+  uf: string;
+  rua: string;
+  numero: string;
   receber: string;
   consentimento: boolean;
 };
@@ -858,17 +863,79 @@ function validateEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+const formatCEP = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+};
+
+type CepStatus = "idle" | "loading" | "found" | "not-found" | "unavailable";
+
+type ViaCepResponse = {
+  erro?: boolean | "true";
+  localidade?: string;
+  logradouro?: string;
+  uf?: string;
+};
+
 function Registration() {
   const [form, setForm] = useState<FormFields>({
     nome: "", clinica: "", veterinario: "", crmv: "", email: "", whatsapp: "",
-    tipo: "", documento: "", receber: "", consentimento: false,
+    tipo: "", documento: "", cep: "", cidade: "", uf: "", rua: "", numero: "",
+    receber: "", consentimento: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [cepStatus, setCepStatus] = useState<CepStatus>("idle");
+
+  useEffect(() => {
+    const cep = form.cep.replace(/\D/g, "");
+    if (cep.length !== 8) return;
+    const controller = new AbortController();
+    let active = true;
+    const timeout = window.setTimeout(() => controller.abort(), 6000);
+    setCepStatus("loading");
+    fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Falha na consulta do CEP");
+        return response.json() as Promise<ViaCepResponse>;
+      })
+      .then((address) => {
+        if (!active || controller.signal.aborted) return;
+        if (address.erro) {
+          setCepStatus("not-found");
+          setErrors((current) => ({ ...current, cep: "CEP não encontrado. Confira os números." }));
+          return;
+        }
+        if (!address.localidade || !address.uf) throw new Error("Resposta incompleta do CEP");
+        setForm((current) => ({
+          ...current,
+          cidade: address.localidade || current.cidade,
+          rua: address.logradouro || current.rua,
+          uf: address.uf || "",
+        }));
+        setErrors((current) => ({ ...current, cep: undefined, cidade: undefined, rua: undefined }));
+        setCepStatus("found");
+      })
+      .catch(() => {
+        if (active) setCepStatus("unavailable");
+      })
+      .finally(() => window.clearTimeout(timeout));
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [form.cep]);
 
   function set(field: keyof FormFields, value: string | boolean) {
     setForm((f) => ({ ...f, [field]: value }));
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
+  }
+
+  function setCep(value: string) {
+    setForm((current) => ({ ...current, cep: formatCEP(value), cidade: "", rua: "", uf: "" }));
+    setCepStatus("idle");
+    setErrors((current) => ({ ...current, cep: undefined, cidade: undefined, rua: undefined }));
   }
 
   function setProfile(tipo: string) {
@@ -879,6 +946,8 @@ function Registration() {
   const isInstitution = form.tipo === "clinica";
   const canSubmit = !!form.tipo && !!form.nome.trim() && validCRMV(form.crmv)
     && validateEmail(form.email) && validWhatsApp(form.whatsapp) && validDocument(form.documento)
+    && form.cep.replace(/\D/g, "").length === 8 && (cepStatus === "found" || cepStatus === "unavailable")
+    && !!form.cidade.trim() && !!form.rua.trim() && !!form.numero.trim()
     && !!form.receber && form.consentimento
     && (!isInstitution || (!!form.clinica.trim() && !!form.veterinario.trim()));
 
@@ -896,6 +965,11 @@ function Registration() {
     else if (!validWhatsApp(form.whatsapp)) e.whatsapp = "Informe um celular com DDD e 9 dígitos.";
     if (!form.documento.trim()) e.documento = "CPF ou CNPJ obrigatório.";
     else if (!validDocument(form.documento)) e.documento = "Informe um CPF ou CNPJ válido.";
+    if (form.cep.replace(/\D/g, "").length !== 8) e.cep = "Informe um CEP com 8 dígitos.";
+    else if (cepStatus === "not-found") e.cep = "CEP não encontrado. Confira os números.";
+    if (!form.cidade.trim()) e.cidade = "Informe a cidade.";
+    if (!form.rua.trim()) e.rua = "Informe a rua.";
+    if (!form.numero.trim()) e.numero = "Informe o número.";
     if (!form.receber) e.receber = "Selecione onde deseja receber os laudos.";
     if (!form.consentimento) e.consentimento = "É necessário concordar para prosseguir.";
     return e;
@@ -921,6 +995,8 @@ function Registration() {
     const field = e.currentTarget.name as keyof FormFields;
     const message = field === "documento" && form.documento && !validDocument(form.documento)
       ? "Informe um CPF ou CNPJ válido."
+      : field === "cep" && form.cep && form.cep.replace(/\D/g, "").length !== 8
+      ? "Informe um CEP com 8 dígitos."
       : field === "whatsapp" && form.whatsapp && !validWhatsApp(form.whatsapp)
       ? "Informe um celular com DDD e 9 dígitos."
       : field === "crmv" && form.crmv && !validCRMV(form.crmv)
@@ -1142,6 +1218,59 @@ function Registration() {
                 />
                 {errors.documento && <div id="cadastro-documento-error" role="alert" style={ERROR_STYLE}>{errors.documento}</div>}
             </div>
+
+            {/* Endereço */}
+            <fieldset style={{ border: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "16px" }}>
+              <legend style={{ ...LABEL_STYLE, marginBottom: "12px" }}>Endereço</legend>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                <div>
+                  <label htmlFor="cadastro-cep" style={LABEL_STYLE}>CEP <span style={{ color: "#E53E3E" }}>*</span></label>
+                  <input id="cadastro-cep" name="cep" type="text" inputMode="numeric" autoComplete="postal-code" required
+                    value={form.cep} onChange={(e) => setCep(e.target.value)} maxLength={9}
+                    onFocus={inputFocus} onBlur={inputBlur} placeholder="00000-000"
+                    aria-invalid={!!errors.cep} aria-describedby={errors.cep ? "cadastro-cep-error" : "cadastro-cep-status"}
+                    style={FIELD_STYLE(!!errors.cep)} />
+                  {errors.cep && <div id="cadastro-cep-error" role="alert" style={ERROR_STYLE}>{errors.cep}</div>}
+                  <div id="cadastro-cep-status" role="status" aria-live="polite" style={{ ...font("0.75rem", 500, B.muted), marginTop: "4px" }}>
+                    {cepStatus === "loading" && "Consultando CEP..."}
+                    {cepStatus === "found" && `CEP encontrado${form.uf ? ` em ${form.uf}` : ""}. Confirme os dados abaixo.`}
+                    {cepStatus === "unavailable" && "Consulta indisponível. Preencha o endereço manualmente e confira o CEP."}
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="cadastro-cidade" style={LABEL_STYLE}>Cidade <span style={{ color: "#E53E3E" }}>*</span></label>
+                  <input id="cadastro-cidade" name="cidade" type="text" autoComplete="address-level2" required
+                    value={form.cidade} onChange={(e) => set("cidade", e.target.value)}
+                    onFocus={inputFocus} onBlur={inputBlur} placeholder="Cidade"
+                    aria-invalid={!!errors.cidade} aria-describedby={errors.cidade ? "cadastro-cidade-error" : undefined}
+                    style={FIELD_STYLE(!!errors.cidade)} />
+                  {errors.cidade && <div id="cadastro-cidade-error" role="alert" style={ERROR_STYLE}>{errors.cidade}</div>}
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "16px" }}>
+                <div>
+                  <label htmlFor="cadastro-rua" style={LABEL_STYLE}>Rua <span style={{ color: "#E53E3E" }}>*</span></label>
+                  <input id="cadastro-rua" name="rua" type="text" autoComplete="address-line1" required
+                    value={form.rua} onChange={(e) => set("rua", e.target.value)}
+                    onFocus={inputFocus} onBlur={inputBlur} placeholder="Rua ou avenida"
+                    aria-invalid={!!errors.rua} aria-describedby={errors.rua ? "cadastro-rua-error" : undefined}
+                    style={FIELD_STYLE(!!errors.rua)} />
+                  {errors.rua && <div id="cadastro-rua-error" role="alert" style={ERROR_STYLE}>{errors.rua}</div>}
+                </div>
+                <div>
+                  <label htmlFor="cadastro-numero" style={LABEL_STYLE}>Número <span style={{ color: "#E53E3E" }}>*</span></label>
+                  <input id="cadastro-numero" name="numero" type="text" autoComplete="address-line2" required
+                    value={form.numero} onChange={(e) => set("numero", e.target.value)} maxLength={15}
+                    onFocus={inputFocus} onBlur={inputBlur} placeholder="Nº ou s/n"
+                    aria-invalid={!!errors.numero} aria-describedby={errors.numero ? "cadastro-numero-error" : undefined}
+                    style={FIELD_STYLE(!!errors.numero)} />
+                  {errors.numero && <div id="cadastro-numero-error" role="alert" style={ERROR_STYLE}>{errors.numero}</div>}
+                </div>
+              </div>
+              <p style={{ ...font("0.75rem", 500, B.muted), lineHeight: 1.5, margin: 0 }}>
+                A consulta confirma o CEP e sugere cidade e rua; não verifica o número do imóvel.
+              </p>
+            </fieldset>
 
             {/* Receber laudos */}
             <div>
