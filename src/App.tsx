@@ -326,7 +326,7 @@ function Hero() {
 /* ── About ── */
 function About() {
   return (
-    <section id="sobre" style={{ padding: "96px 24px" }}>
+    <section id="sobre" style={{ padding: "96px 24px 32px" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "64px", alignItems: "center" }}>
         <div>
           <SectionLabel>Sobre nós</SectionLabel>
@@ -585,7 +585,7 @@ const TEAM = [
 
 function Team() {
   return (
-    <section id="equipe" style={{ background: B.surface, padding: "96px 24px", borderTop: `1px solid ${B.hairline}` }}>
+    <section id="equipe" style={{ background: B.bg, padding: "48px 24px 96px" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         <SectionLabel>Conheça nossa equipe</SectionLabel>
         <h2 style={{ ...font("clamp(1.8rem, 4vw, 2.8rem)", 800, B.ink), lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "48px" }}>
@@ -1359,9 +1359,9 @@ export default function App() {
       <Nav />
       <Hero />
       <About />
+      <Team />
       <Exams />
       <HowItWorks />
-      <Team />
       <Registration />
       <Contact />
       <Footer />
