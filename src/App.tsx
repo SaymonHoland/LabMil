@@ -65,6 +65,7 @@ function IconCheck() {
 
 /* ── Constants ── */
 const WHATSAPP_LINK = "https://wa.me/5585984491305";
+const INSTAGRAM_LINK = "https://www.instagram.com/labmilvet/";
 const VETCLOUD_REQUEST = "https://app.ideainfo.com.br/exec/requisicao.php?account_id=9z2kzdwd";
 const VETCLOUD_RESULT = "https://app.ideainfo.com.br/exec/resultados.php?account_id=9z2kzdwd";
 
@@ -725,7 +726,10 @@ function Footer() {
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.7")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
               ><IconWhatsApp size={20} /></a>
-              <span style={{ color: "rgba(255,255,255,0.4)" }} role="img" aria-label="Instagram indisponível" title="Instagram indisponível"><IconInsta /></span>
+              <a href={INSTAGRAM_LINK} target="_blank" rel="noopener noreferrer" style={{ color: "#fff", transition: "opacity 0.15s" }} aria-label="Instagram do LabMil"
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.7")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+              ><IconInsta /></a>
             </div>
           </div>
 
