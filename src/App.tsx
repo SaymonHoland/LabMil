@@ -348,7 +348,7 @@ function About() {
           <div style={{ marginTop: "32px", display: "flex", flexDirection: "column", gap: "14px" }}>
             {[
               ["Dados que facilitam", "Guiados por dados confiáveis, otimizamos processos e tomadas de decisão."],
-              ["Elos que constroem", "Trabalhamos com parcerias. A confiança é o centro do nosso trabalho."],
+              ["Parcerias sólidas. ", "A confiança é o pilar do nosso trabalho."],
               ["Cuidado com seriedade", "Atenção e cuidado que guiam cada ação, sempre prontos para atender."],
             ].map(([title, desc]) => (
               <div key={title} style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
@@ -498,8 +498,8 @@ function Exams() {
 /* ── How it works ── */
 const STEPS = [
   { n: "01", title: "Cadastro", desc: "O cadastro pode ser realizado pelo formulário disponível no nosso site ou pelo WhatsApp." },
-  { n: "02", title: "Solicitação", desc: "A requisição pode ser preenchida diretamente pelo nosso sistema ou pela requisição física." },
-  { n: "03", title: "Coleta e processamento", desc: "A coleta é solicitada pelo WhatsApp. O material é coletado na clínica ou enviado ao laboratório. Nossa equipe realiza a triagem e o processamento com equipamentos calibrados e controle de qualidade." },
+  { n: "02", title: "Solicitação", desc: "O preenchimento pode ser feito diretamente pelo nosso sistema ou pela requisição física." },
+  { n: "03", title: "Coleta e processamento", desc: "A coleta pode ser solicitada via WhatsApp. O material é recolhido na clínica ou encaminhado ao laboratório. Nossa equipe realiza a triagem e o processamento com equipamentos calibrados e controle de qualidade." },
   { n: "04", title: "Laudo liberado", desc: "Assim que o resultado fica pronto, você recebe uma notificação automática por e-mail e WhatsApp. O laudo fica disponível online em nosso sistema." },
 ];
 
@@ -1050,7 +1050,7 @@ function Registration() {
           <form onSubmit={handleSubmit} noValidate style={{ background: "#fff", border: `1px solid ${B.hairline}`, borderRadius: "16px", padding: "36px 32px", display: "flex", flexDirection: "column", gap: "20px" }}>
 
             <fieldset aria-describedby={errors.tipo ? "cadastro-tipo-error" : undefined} style={{ border: "none", padding: 0, margin: 0 }}>
-              <legend style={{ ...LABEL_STYLE, marginBottom: "10px" }}>Você vai se cadastrar como? <span style={{ color: "#E53E3E" }}>*</span></legend>
+              <legend style={{ ...LABEL_STYLE, marginBottom: "10px" }}>Como deseja se cadastrar? <span style={{ color: "#E53E3E" }}>*</span></legend>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
                 {[
                   { value: "autonomo", label: "Veterinário autônomo" },
