@@ -41,6 +41,7 @@ html {
 
 @media (max-width: 640px) {
   .exam-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .privacy-grid { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 380px) {
   .exam-grid { grid-template-columns: 1fr !important; }

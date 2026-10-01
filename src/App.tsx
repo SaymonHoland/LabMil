@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { formatDocument, validDocument, formatWhatsApp, validWhatsApp, formatCRMV, validCRMV } from "./registrationValidation";
 import logoBlack from "@/imports/MARCA_LABMIL_VERSAO01-HORIZONTAL.6.png";
 import logoWhite from "@/imports/MARCA_LABMIL_VERSAO01-HORIZONTAL.5-1.png";
@@ -68,6 +68,7 @@ const WHATSAPP_LINK = "https://wa.me/5585984491305";
 const INSTAGRAM_LINK = "https://www.instagram.com/labmilvet/";
 const VETCLOUD_REQUEST = "https://app.ideainfo.com.br/exec/requisicao.php?account_id=9z2kzdwd";
 const VETCLOUD_RESULT = "https://app.ideainfo.com.br/exec/resultados.php?account_id=9z2kzdwd";
+const TURNSTILE_SITE_KEY = "0x4AAAAAAFDZmxUENR2F7L5c";
 
 const NAV_LINKS = [
   { label: "Sobre", href: "#sobre" },
@@ -332,16 +333,14 @@ function About() {
         <div>
           <SectionLabel>Sobre nós</SectionLabel>
           <h2 style={{ ...font("clamp(1.8rem, 4vw, 2.8rem)", 800, B.ink), lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: "24px" }}>
-            Um laboratório construído para servir quem cuida
+            Um laboratório próximo de quem cuida
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <p style={{ ...font("0.975rem", 400, B.muted), lineHeight: 1.75 }}>
-              O LabMil nasceu da convicção de que um diagnóstico preciso e rápido salva vidas,
-              e que os profissionais que cuidam de animais merecem um parceiro laboratorial à altura desse propósito.
+              Fundado em Fortaleza em 2023, o LabMil atende veterinários autônomos, clínicas e hospitais veterinários com suporte próximo em todas as etapas, da coleta à liberação do laudo. Já são mais de 20 mil exames liberados e mais de 500 profissionais cadastrados.
             </p>
             <p style={{ ...font("0.975rem", 400, B.muted), lineHeight: 1.75 }}>
-              Com controle interno rígido e equipe especializada em medicina veterinária laboratorial,
-              entregamos laudos com agilidade sem abrir mão da qualidade científica que cada caso exige.
+              Nossa equipe reúne experiência em patologia clínica e anatomia patológica veterinária. Com coleta solicitada pelo WhatsApp e resultados disponíveis online, por e-mail e WhatsApp, tornamos a rotina diagnóstica mais simples para quem está cuidando do paciente.
             </p>
           </div>
 
@@ -834,6 +833,55 @@ type FormFields = {
   consentimento: boolean;
 };
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: HTMLElement, options: Record<string, unknown>) => string;
+      reset: (widgetId?: string) => void;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
+function TurnstileWidget({ onToken, onError }: { onToken: (token: string) => void; onError: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    const renderWidget = () => {
+      if (!containerRef.current || !window.turnstile || widgetIdRef.current) return;
+      widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        action: "cadastro",
+        theme: "light",
+        size: "flexible",
+        callback: onToken,
+        "expired-callback": () => onToken(""),
+        "error-callback": onError,
+      });
+    };
+    const existing = document.querySelector<HTMLScriptElement>('script[data-labmil-turnstile="true"]');
+    if (existing) {
+      if (window.turnstile) renderWidget();
+      else existing.addEventListener("load", renderWidget, { once: true });
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.dataset.labmilTurnstile = "true";
+      script.addEventListener("load", renderWidget, { once: true });
+      document.head.appendChild(script);
+    }
+    return () => {
+      existing?.removeEventListener("load", renderWidget);
+      if (widgetIdRef.current && window.turnstile) window.turnstile.remove(widgetIdRef.current);
+    };
+  }, [onError, onToken]);
+
+  return <div ref={containerRef} aria-label="Verificação de segurança contra robôs" />;
+}
+
 type FormErrors = Partial<Record<keyof FormFields, string>>;
 
 const FIELD_STYLE = (hasError: boolean): React.CSSProperties => ({
@@ -889,7 +937,15 @@ function Registration() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [cepStatus, setCepStatus] = useState<CepStatus>("idle");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
+  const handleTurnstileError = useCallback(() => {
+    setTurnstileToken("");
+    setSubmitError("Não foi possível concluir a verificação de segurança. Recarregue a página e tente novamente.");
+  }, []);
 
   useEffect(() => {
     const cep = form.cep.replace(/\D/g, "");
@@ -952,7 +1008,7 @@ function Registration() {
     && validateEmail(form.email) && validWhatsApp(form.whatsapp) && validDocument(form.documento)
     && form.cep.replace(/\D/g, "").length === 8 && (cepStatus === "found" || cepStatus === "unavailable")
     && !!form.cidade.trim() && !!form.rua.trim() && !!form.numero.trim()
-    && !!form.receber && form.consentimento
+    && !!form.receber && form.consentimento && !!turnstileToken
     && (!isInstitution || (!!form.clinica.trim() && !!form.veterinario.trim()));
 
   function validate(): FormErrors {
@@ -975,11 +1031,11 @@ function Registration() {
     if (!form.rua.trim()) e.rua = "Informe a rua.";
     if (!form.numero.trim()) e.numero = "Informe o número.";
     if (!form.receber) e.receber = "Selecione onde deseja receber os laudos.";
-    if (!form.consentimento) e.consentimento = "É necessário concordar para prosseguir.";
+    if (!form.consentimento) e.consentimento = "Confirme a leitura do Aviso de Privacidade para prosseguir.";
     return e;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -987,8 +1043,24 @@ function Registration() {
       document.getElementById(`cadastro-${Object.keys(errs)[0]}`)?.focus();
       return;
     }
-    // Prévia: o formulário não transmite dados. Integrar com o serviço de envio antes de ativar cadastros.
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      const response = await fetch("/api/cadastro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, turnstileToken, website: "" }),
+      });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Não foi possível enviar agora.");
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Não foi possível enviar agora. Tente novamente.");
+      window.turnstile?.reset();
+      setTurnstileToken("");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const inputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -1024,10 +1096,6 @@ function Registration() {
         <p role="note" style={{ ...font("0.875rem", 600, B.muted), lineHeight: 1.6, margin: "0 0 24px" }}>
           Cadastro para veterinários, clínicas e hospitais veterinários.
         </p>
-        <p role="note" style={{ ...font("0.875rem", 600, B.muted), lineHeight: 1.6, margin: "0 0 24px" }}>
-          Prévia do site: este formulário ainda não envia cadastros. Para solicitar seu cadastro, fale conosco pelo WhatsApp.
-        </p>
-
         {submitted ? (
           <div role="status" aria-live="polite" style={{
             background: "#fff",
@@ -1045,9 +1113,9 @@ function Registration() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <div style={{ ...font("1.2rem", 800, B.ink) }}>Prévia concluída</div>
+            <div style={{ ...font("1.2rem", 800, B.ink) }}>Cadastro enviado com sucesso</div>
             <p style={{ ...font("0.95rem", 400, B.muted), lineHeight: 1.7, maxWidth: "440px" }}>
-              Nenhum dado foi enviado. O cadastro estará disponível quando o envio for ativado.
+              Recebemos seus dados. Agora é só aguardar: a equipe do LabMil entrará em contato pelo WhatsApp informado em até 2 dias úteis.
             </p>
           </div>
         ) : (
@@ -1271,9 +1339,6 @@ function Registration() {
                   {errors.numero && <div id="cadastro-numero-error" role="alert" style={ERROR_STYLE}>{errors.numero}</div>}
                 </div>
               </div>
-              <p style={{ ...font("0.75rem", 500, B.muted), lineHeight: 1.5, margin: 0 }}>
-                A consulta confirma o CEP e sugere cidade e rua; não verifica o número do imóvel.
-              </p>
             </fieldset>
 
             {/* Receber laudos */}
@@ -1299,7 +1364,13 @@ function Registration() {
               {errors.receber && <div id="cadastro-receber-error" role="alert" style={ERROR_STYLE}>{errors.receber}</div>}
             </div>
 
-            {/* Consentimento */}
+            <div role="note" style={{ background: B.blueLight, borderRadius: "10px", padding: "14px 16px" }}>
+              <p style={{ ...font("0.82rem", 500, B.muted), lineHeight: 1.6, margin: 0 }}>
+                Seus dados serão usados para analisar e concluir o cadastro e entrar em contato. O tratamento atende à sua solicitação, conforme o art. 7º, V, da LGPD, e, quando necessário, ao cumprimento de obrigações legais.
+              </p>
+            </div>
+
+            {/* Confirmação de leitura */}
             <div>
               <label htmlFor="cadastro-consentimento" style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
                 <input
@@ -1313,44 +1384,85 @@ function Registration() {
                   style={{ marginTop: "3px", flexShrink: 0, accentColor: B.blue, width: "16px", height: "16px", cursor: "pointer" }}
                 />
                 <span style={{ ...font("0.875rem", 500, B.ink), lineHeight: 1.5 }}>
-                  Concordo com o envio destes dados ao LabMil para exclusiva realização do meu cadastro e contato.{" "}
+                  Confirmo que li o{" "}
                   <a href="#politica-de-privacidade" style={{ ...font("0.875rem", 600, B.blue), textDecoration: "underline" }}>
-                    Política de Privacidade
-                  </a>
+                    Aviso de Privacidade
+                  </a>{" "}e estou ciente de como meus dados serão tratados nesta solicitação.
                 </span>
               </label>
               {errors.consentimento && <div id="cadastro-consentimento-error" role="alert" style={{ ...ERROR_STYLE, marginTop: "6px" }}>{errors.consentimento}</div>}
             </div>
 
+            <div>
+              <TurnstileWidget
+                onToken={handleTurnstileToken}
+                onError={handleTurnstileError}
+              />
+              <p style={{ ...font("0.75rem", 500, B.muted), lineHeight: 1.5, margin: "6px 0 0" }}>
+                Esta verificação protege o formulário contra envios automáticos.
+              </p>
+            </div>
+
             {/* Submit */}
             </>)}
             <div style={{ paddingTop: "4px" }}>
+              {submitError && <div role="alert" aria-live="assertive" style={{ ...ERROR_STYLE, marginBottom: "10px" }}>{submitError}</div>}
               <button
                 type="submit"
-                disabled={!canSubmit}
+                disabled={!canSubmit || isSubmitting}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "8px",
-                  background: canSubmit ? B.blue : "#AAB6CA",
+                  background: canSubmit && !isSubmitting ? B.blue : "#AAB6CA",
                   color: "#fff",
                   padding: "13px 28px",
                   borderRadius: "12px",
                   border: "none",
-                  cursor: canSubmit ? "pointer" : "not-allowed",
+                  cursor: canSubmit && !isSubmitting ? "pointer" : "not-allowed",
                   fontFamily: '"Nunito", system-ui, sans-serif',
                   fontSize: "0.95rem",
                   fontWeight: 700,
                   transition: "background 0.18s",
                 }}
-                onMouseEnter={(e) => { if (canSubmit) e.currentTarget.style.background = B.blueDark; }}
-                onMouseLeave={(e) => { if (canSubmit) e.currentTarget.style.background = B.blue; }}
+                onMouseEnter={(e) => { if (canSubmit && !isSubmitting) e.currentTarget.style.background = B.blueDark; }}
+                onMouseLeave={(e) => { if (canSubmit && !isSubmitting) e.currentTarget.style.background = B.blue; }}
               >
-                <IconArrow /> Testar cadastro
+                <IconArrow /> {isSubmitting ? "Enviando..." : "Solicitar cadastro"}
               </button>
             </div>
           </form>
         )}
+      </div>
+    </section>
+  );
+}
+
+function PrivacyNotice() {
+  return (
+    <section id="politica-de-privacidade" style={{ padding: "88px 24px", background: "#fff", borderTop: `1px solid ${B.hairline}` }}>
+      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+        <SectionLabel>Privacidade</SectionLabel>
+        <h2 style={{ ...font("clamp(1.7rem, 4vw, 2.5rem)", 800, B.ink), lineHeight: 1.2, marginBottom: "16px" }}>Como o LabMil cuida dos seus dados</h2>
+        <p style={{ ...font("0.95rem", 400, B.muted), lineHeight: 1.75, marginBottom: "28px" }}>
+          O LabMil Laboratório Veterinário é responsável pelos dados enviados neste site. Este aviso explica, de forma simples, como usamos e protegemos as informações do pedido de cadastro.
+        </p>
+        <div className="privacy-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
+          {[
+            ["Para que usamos", "Analisar a solicitação, confirmar a identidade e o vínculo profissional, validar o CRMV, entrar em contato e concluir o cadastro para prestação dos serviços."],
+            ["Base legal", "Tratamos os dados para realizar procedimentos preliminares relacionados à contratação solicitada por você (art. 7º, V, da LGPD) e, quando aplicável, para cumprir obrigações legais ou regulatórias (art. 7º, II)."],
+            ["Com quem compartilhamos", "Usamos prestadores necessários ao funcionamento e à segurança do site e ao recebimento das mensagens, como Cloudflare e Google. Eles recebem somente os dados necessários para prestar esses serviços."],
+            ["Por quanto tempo", "Mantemos as informações pelo tempo necessário para avaliar e concluir o cadastro e para cumprir obrigações aplicáveis. Quando deixarem de ser necessárias, elas serão eliminadas ou anonimizadas, salvo quando a lei permitir ou exigir sua conservação."],
+            ["Como protegemos", "Usamos conexão segura, controles de acesso, validação do formulário, limite de tentativas e proteção contra robôs. Também restringimos o uso dos dados às pessoas e aos serviços que precisam deles."],
+            ["Seus direitos", "Você pode pedir confirmação do tratamento, acesso, correção, informações sobre compartilhamento e, quando cabível, bloqueio ou eliminação. Para exercer esses direitos, escreva para labmilvet@gmail.com."],
+          ].map(([title, body]) => (
+            <article key={title} style={{ border: `1px solid ${B.hairline}`, borderRadius: "12px", padding: "20px" }}>
+              <h3 style={{ ...font("1rem", 800, B.ink), marginBottom: "8px" }}>{title}</h3>
+              <p style={{ ...font("0.86rem", 400, B.muted), lineHeight: 1.7, margin: 0 }}>{body}</p>
+            </article>
+          ))}
+        </div>
+        <p style={{ ...font("0.78rem", 500, B.muted), lineHeight: 1.6, margin: "22px 0 0" }}>Última atualização: 25 de setembro de 2026.</p>
       </div>
     </section>
   );
@@ -1367,6 +1479,7 @@ export default function App() {
       <Exams />
       <HowItWorks />
       <Registration />
+      <PrivacyNotice />
       <Contact />
       <Footer />
       <FloatWA />
