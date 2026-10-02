@@ -1543,10 +1543,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (window.location.hash === "#politica-de-privacidade") openPrivacy();
-  }, [openPrivacy]);
-
-  useEffect(() => {
     const page = pageRef.current;
     if (!page) return;
     if (privacyOpen) {
