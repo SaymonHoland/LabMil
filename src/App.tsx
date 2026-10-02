@@ -709,7 +709,7 @@ function Contact() {
 }
 
 /* ── Footer ── */
-function Footer() {
+function Footer({ onOpenPrivacy }: { onOpenPrivacy: () => void }) {
   const year = new Date().getFullYear();
   return (
     <footer style={{ background: B.ink, padding: "56px 24px 32px" }}>
@@ -769,9 +769,9 @@ function Footer() {
           </span>
           <span style={{ ...font("0.75rem", 400, "rgba(255,255,255,0.7)"), maxWidth: "480px", textAlign: "right" as const }}>
             Dados pessoais tratados conforme a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).{" "}
-            <a href="#politica-de-privacidade" style={{ ...font("0.75rem", 600, "rgba(255,255,255,0.85)"), textDecoration: "underline" }}>
-              Política de Privacidade
-            </a>
+            <button type="button" onClick={onOpenPrivacy} style={{ ...font("0.75rem", 600, "rgba(255,255,255,0.85)"), textDecoration: "underline", background: "none", border: 0, padding: 0, cursor: "pointer" }}>
+              Aviso de Privacidade
+            </button>
           </span>
         </div>
       </div>
@@ -929,7 +929,7 @@ type ViaCepResponse = {
   uf?: string;
 };
 
-function Registration() {
+function Registration({ onOpenPrivacy }: { onOpenPrivacy: () => void }) {
   const [form, setForm] = useState<FormFields>({
     nome: "", clinica: "", veterinario: "", crmv: "", email: "", whatsapp: "",
     tipo: "", documento: "", cep: "", cidade: "", uf: "", rua: "", numero: "",
@@ -1115,7 +1115,7 @@ function Registration() {
             </div>
             <div style={{ ...font("1.2rem", 800, B.ink) }}>Cadastro enviado com sucesso</div>
             <p style={{ ...font("0.95rem", 400, B.muted), lineHeight: 1.7, maxWidth: "440px" }}>
-              Recebemos seus dados. Agora é só aguardar: a equipe do LabMil entrará em contato pelo WhatsApp informado em até 2 dias úteis.
+              Recebemos seus dados. Agora é só aguardar: a equipe do LabMil entrará em contato pelo WhatsApp informado em até 48 horas.
             </p>
           </div>
         ) : (
@@ -1372,24 +1372,25 @@ function Registration() {
 
             {/* Confirmação de leitura */}
             <div>
-              <label htmlFor="cadastro-consentimento" style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                 <input
                   type="checkbox"
                   id="cadastro-consentimento"
                   required
                   aria-invalid={!!errors.consentimento}
+                  aria-labelledby="cadastro-consentimento-label"
                   aria-describedby={errors.consentimento ? "cadastro-consentimento-error" : undefined}
                   checked={form.consentimento}
                   onChange={(e) => set("consentimento", e.target.checked)}
                   style={{ marginTop: "3px", flexShrink: 0, accentColor: B.blue, width: "16px", height: "16px", cursor: "pointer" }}
                 />
-                <span style={{ ...font("0.875rem", 500, B.ink), lineHeight: 1.5 }}>
+                <span id="cadastro-consentimento-label" style={{ ...font("0.875rem", 500, B.ink), lineHeight: 1.5 }}>
                   Confirmo que li o{" "}
-                  <a href="#politica-de-privacidade" style={{ ...font("0.875rem", 600, B.blue), textDecoration: "underline" }}>
+                  <button type="button" onClick={onOpenPrivacy} style={{ ...font("0.875rem", 600, B.blue), textDecoration: "underline", background: "none", border: 0, padding: 0, cursor: "pointer" }}>
                     Aviso de Privacidade
-                  </a>{" "}e estou ciente de como meus dados serão tratados nesta solicitação.
+                  </button>{" "}e estou ciente de como meus dados serão tratados nesta solicitação.
                 </span>
-              </label>
+              </div>
               {errors.consentimento && <div id="cadastro-consentimento-error" role="alert" style={{ ...ERROR_STYLE, marginTop: "6px" }}>{errors.consentimento}</div>}
             </div>
 
@@ -1438,13 +1439,70 @@ function Registration() {
   );
 }
 
-function PrivacyNotice() {
+function PrivacyModal({ onClose }: { onClose: () => void }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )).filter((element) => !element.hasAttribute("disabled"));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
   return (
-    <section id="politica-de-privacidade" style={{ padding: "88px 24px", background: "#fff", borderTop: `1px solid ${B.hairline}` }}>
-      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+    <div
+      role="presentation"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(10,10,20,0.68)", padding: "24px", display: "flex", alignItems: "center", justifyContent: "center" }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="privacy-title"
+        aria-describedby="privacy-description"
+        style={{ position: "relative", width: "100%", maxWidth: "900px", maxHeight: "calc(100vh - 48px)", overflowY: "auto", background: "#fff", borderRadius: "16px", padding: "clamp(24px, 5vw, 40px)", boxShadow: "0 24px 72px rgba(0,0,0,0.28)" }}
+      >
+        <button
+          ref={closeButtonRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Fechar aviso de privacidade"
+          style={{ position: "absolute", top: "16px", right: "16px", width: "40px", height: "40px", borderRadius: "50%", border: `1px solid ${B.hairline}`, background: "#fff", color: B.ink, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+        >
+          <IconX />
+        </button>
         <SectionLabel>Privacidade</SectionLabel>
-        <h2 style={{ ...font("clamp(1.7rem, 4vw, 2.5rem)", 800, B.ink), lineHeight: 1.2, marginBottom: "16px" }}>Como o LabMil cuida dos seus dados</h2>
-        <p style={{ ...font("0.95rem", 400, B.muted), lineHeight: 1.75, marginBottom: "28px" }}>
+        <h2 id="privacy-title" style={{ ...font("clamp(1.7rem, 4vw, 2.5rem)", 800, B.ink), lineHeight: 1.2, margin: "0 48px 16px 0" }}>Como o LabMil cuida dos seus dados</h2>
+        <p id="privacy-description" style={{ ...font("0.95rem", 400, B.muted), lineHeight: 1.75, marginBottom: "28px" }}>
           O LabMil Laboratório Veterinário é responsável pelos dados enviados neste site. Este aviso explica, de forma simples, como usamos e protegemos as informações do pedido de cadastro.
         </p>
         <div className="privacy-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
@@ -1464,25 +1522,57 @@ function PrivacyNotice() {
         </div>
         <p style={{ ...font("0.78rem", 500, B.muted), lineHeight: 1.6, margin: "22px 0 0" }}>Última atualização: 25 de setembro de 2026.</p>
       </div>
-    </section>
+    </div>
   );
 }
 
 /* ── App ── */
 export default function App() {
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const privacyTriggerRef = useRef<HTMLElement | null>(null);
+
+  const openPrivacy = useCallback(() => {
+    privacyTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPrivacyOpen(true);
+  }, []);
+
+  const closePrivacy = useCallback(() => {
+    setPrivacyOpen(false);
+    window.requestAnimationFrame(() => privacyTriggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (window.location.hash === "#politica-de-privacidade") openPrivacy();
+  }, [openPrivacy]);
+
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page) return;
+    if (privacyOpen) {
+      page.setAttribute("inert", "");
+      page.setAttribute("aria-hidden", "true");
+    } else {
+      page.removeAttribute("inert");
+      page.removeAttribute("aria-hidden");
+    }
+  }, [privacyOpen]);
+
   return (
-    <div style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}>
-      <Nav />
-      <Hero />
-      <About />
-      <Team />
-      <Exams />
-      <HowItWorks />
-      <Registration />
-      <PrivacyNotice />
-      <Contact />
-      <Footer />
-      <FloatWA />
-    </div>
+    <>
+      <div ref={pageRef} style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}>
+        <Nav />
+        <Hero />
+        <About />
+        <Team />
+        <Exams />
+        <HowItWorks />
+        <Registration onOpenPrivacy={openPrivacy} />
+        <Contact />
+        <Footer onOpenPrivacy={openPrivacy} />
+        <FloatWA />
+      </div>
+      {privacyOpen && <PrivacyModal onClose={closePrivacy} />}
+    </>
   );
 }
